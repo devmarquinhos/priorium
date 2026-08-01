@@ -1,13 +1,13 @@
 package com.devmarquinhos.priowl.controller;
 
 import com.devmarquinhos.priowl.dto.AuthRequest;
+import com.devmarquinhos.priowl.dto.UpdatePasswordRequest;
+import com.devmarquinhos.priowl.dto.UpdateProfileRequest;
+import com.devmarquinhos.priowl.dto.UserProfileResponse;
 import com.devmarquinhos.priowl.model.User;
 import com.devmarquinhos.priowl.service.UserService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 
@@ -40,6 +40,30 @@ public class UserController {
             return ResponseEntity.ok(Collections.singletonMap("token", token));
         } catch (RuntimeException e) {
             return ResponseEntity.status(401).body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileResponse> getMe() {
+        return ResponseEntity.ok(userService.getMyProfile());
+    }
+
+    @PutMapping("/me")
+    public ResponseEntity<UserProfileResponse> updateMe(@RequestBody UpdateProfileRequest request) {
+        try {
+            return ResponseEntity.ok(userService.updateMyProfile(request));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().build(); // Você pode melhorar retornando o e.getMessage()
+        }
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<String> updateMyPassword(@RequestBody UpdatePasswordRequest request) {
+        try {
+            userService.updateMyPassword(request);
+            return ResponseEntity.ok("Senha atualizada com sucesso.");
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 }

@@ -55,4 +55,8 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() { return true; }
 
+    public String getRealUsername() {
+        return this.username;
+    }
+
 }
