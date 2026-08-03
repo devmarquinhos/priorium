@@ -31,6 +31,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/health").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password/forgot").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password/reset").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/plans").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
