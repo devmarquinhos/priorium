@@ -53,7 +53,7 @@ public class UserController {
         try {
             return ResponseEntity.ok(userService.updateMyProfile(request));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().build(); // Você pode melhorar retornando o e.getMessage()
+            return ResponseEntity.badRequest().build();
         }
     }
 
