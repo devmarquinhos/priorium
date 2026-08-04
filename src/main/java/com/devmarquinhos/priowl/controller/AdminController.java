@@ -1,5 +1,7 @@
 package com.devmarquinhos.priowl.controller;
 
+import com.devmarquinhos.priowl.dto.AdminDashboardResponse;
+import com.devmarquinhos.priowl.service.DashboardService;
 import com.devmarquinhos.priowl.service.PaymentService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,9 +13,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminController {
 
     private final PaymentService paymentService;
+    private final DashboardService dashboardService;
 
-    public AdminController(PaymentService paymentService) {
+    public AdminController(PaymentService paymentService, DashboardService dashboardService) {
         this.paymentService = paymentService;
+        this.dashboardService = dashboardService;
     }
 
     @GetMapping("/payments")
@@ -22,6 +26,15 @@ public class AdminController {
             return ResponseEntity.ok(paymentService.getAllPaymentsForAdmin());
         } catch (RuntimeException e) {
             return ResponseEntity.status(403).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/dashboard/kpis")
+    public ResponseEntity<AdminDashboardResponse> getDashboardKpis() {
+        try {
+            return ResponseEntity.ok(dashboardService.getDashboardKpis());
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(403).build();
         }
     }
 }
