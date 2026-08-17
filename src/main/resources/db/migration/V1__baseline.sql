@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS category (
     id BIGSERIAL PRIMARY KEY,
     title TEXT NOT NULL,
     color TEXT,
-    user_id BIGINT NOT NULL,
+    user_id BIGINT,
     category_id BIGINT,
     parent_task_id BIGINT,
     CONSTRAINT fk_category_user FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,

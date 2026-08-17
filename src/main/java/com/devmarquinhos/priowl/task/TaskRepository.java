@@ -24,6 +24,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     long countByParentTask_IdAndStatusNot(Long parentTaskId, TaskStatus status);
 
+    long countByUserId(Long userId);
+
     @Query("""
         SELECT t FROM Task t WHERE t.user.id = :userId
           AND (t.status = :status OR :status IS NULL)

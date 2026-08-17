@@ -32,16 +32,24 @@ public class PlanService {
     }
 
     public List<PlanResponse> getAllPlans() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElse(null);
+
         return planRepository.findAll().stream()
+                .filter(plan -> (user != null && user.getIsAdmin()) || Boolean.TRUE.equals(plan.getIsActive()))
                 .map(plan -> new PlanResponse(
-                        plan.getId(),
-                        plan.getName(),
-                        plan.getDescription(),
-                        plan.getPrice(),
-                        plan.getMaxTasks(),
-                        plan.getIsActive()
+                        plan.getId(), plan.getName(), plan.getDescription(),
+                        plan.getPrice(), plan.getMaxTasks(), plan.getIsActive()
                 ))
-                .collect(Collectors.toList());
+                .toList();
+    }
+
+    @Transactional
+    public void togglePlanStatus(Long id) {
+        verifyAdmin();
+        Plan plan = planRepository.findById(id).orElseThrow(() -> new RuntimeException("Plano não encontrado."));
+        plan.setIsActive(!plan.getIsActive());
+        planRepository.save(plan);
     }
 
     @Transactional
