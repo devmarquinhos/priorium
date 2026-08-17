@@ -105,4 +105,32 @@ public class TaskController {
             return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
         }
     }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getById(@PathVariable Long id, @AuthenticationPrincipal User loggedUser) {
+        try {
+            return ResponseEntity.ok(taskService.getTaskById(id, loggedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{id}/dependencies")
+    public ResponseEntity<?> getDependencies(@PathVariable Long id, @AuthenticationPrincipal User loggedUser) {
+        try {
+            return ResponseEntity.ok(taskService.getTaskDependencies(id, loggedUser));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
+
+    @DeleteMapping("/{id}/dependencies/{blockingId}")
+    public ResponseEntity<?> removeDependency(@PathVariable Long id, @PathVariable Long blockingId, @AuthenticationPrincipal User loggedUser) {
+        try {
+            taskService.removeDependency(id, blockingId, loggedUser);
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
 }

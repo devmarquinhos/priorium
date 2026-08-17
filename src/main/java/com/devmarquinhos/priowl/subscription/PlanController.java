@@ -2,9 +2,11 @@ package com.devmarquinhos.priowl.subscription;
 
 import com.devmarquinhos.priowl.subscription.dto.PlanRequest;
 import com.devmarquinhos.priowl.subscription.dto.PlanResponse;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 
 @RestController
@@ -37,6 +39,16 @@ public class PlanController {
             return ResponseEntity.ok(planService.updatePlan(id, request));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> toggleStatus(@PathVariable Long id) {
+        try {
+            planService.togglePlanStatus(id);
+            return ResponseEntity.ok(Collections.singletonMap("message", "Status do plano alterado com sucesso."));
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Collections.singletonMap("error", e.getMessage()));
         }
     }
 }
