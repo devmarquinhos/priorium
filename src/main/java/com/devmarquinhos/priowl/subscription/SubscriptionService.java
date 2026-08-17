@@ -9,6 +9,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -91,5 +92,34 @@ public class SubscriptionService {
 
         sub.setStatus("CANCELLED");
         subscriptionRepository.save(sub);
+    }
+
+    private void verifyAdmin() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow();
+        if (!user.getIsAdmin()) {
+            throw new RuntimeException("Acesso negado. Apenas administradores.");
+        }
+    }
+
+    public List<SubscriptionResponse> getAllSubscriptionsForAdmin() {
+        verifyAdmin();
+        return subscriptionRepository.findAll().stream()
+                .map(sub -> new SubscriptionResponse(
+                        sub.getId(), sub.getPlan().getName(), sub.getStatus(),
+                        sub.getStartDate(), sub.getEndDate(), sub.getPlan().getMaxTasks()
+                ))
+                .toList();
+    }
+
+    public SubscriptionResponse getSubscriptionByIdForAdmin(Long id) {
+        verifyAdmin();
+        Subscription sub = subscriptionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Assinatura não encontrada."));
+
+        return new SubscriptionResponse(
+                sub.getId(), sub.getPlan().getName(), sub.getStatus(),
+                sub.getStartDate(), sub.getEndDate(), sub.getPlan().getMaxTasks()
+        );
     }
 }

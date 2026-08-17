@@ -64,4 +64,14 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteMe() {
+        try {
+            userService.deleteMyAccount();
+            return ResponseEntity.noContent().build();
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Collections.singletonMap("error", e.getMessage()));
+        }
+    }
 }
