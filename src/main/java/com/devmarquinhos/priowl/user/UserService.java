@@ -9,6 +9,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserService {
     private final UserRepository userRepository;
@@ -79,5 +81,32 @@ public class UserService {
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteMyAccount() {
+        User user = getAuthenticatedUser();
+        userRepository.delete(user);
+    }
+
+    private void verifyAdmin() {
+        User user = getAuthenticatedUser();
+        if (!user.getIsAdmin()) {
+            throw new RuntimeException("Acesso negado. Apenas administradores.");
+        }
+    }
+
+    public List<UserProfileResponse> getAllUsersForAdmin() {
+        verifyAdmin();
+        return userRepository.findAll().stream()
+                .map(u -> new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString()))
+                .toList();
+    }
+
+    public UserProfileResponse getUserByIdForAdmin(Long id) {
+        verifyAdmin();
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        return new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString());
     }
 }
