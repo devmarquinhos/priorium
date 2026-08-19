@@ -12,7 +12,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findByUserId(Long userId);
 
-    List<Task> findByParentTaskId(Long parentTaskId);
+    List<Task> findByParentTask_Id(Long parentTaskId);
 
     List<Task> findAllByParentTask_IdIn(List<Long> parentTaskIds);
 

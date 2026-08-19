@@ -152,7 +152,7 @@ public class TaskService {
             throw new RuntimeException("Você não tem permissão para eliminar esta tarefa.");
         }
 
-        List<Task> subTasks = taskRepository.findByParentTaskId(id);
+        List<Task> subTasks = taskRepository.findByParentTask_Id(id);
         for (Task subTask : subTasks) {
             subTask.setParentTask(null);
             taskRepository.save(subTask);
