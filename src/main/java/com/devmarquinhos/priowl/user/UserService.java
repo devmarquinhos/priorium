@@ -1,6 +1,10 @@
 package com.devmarquinhos.priowl.user;
 
 import com.devmarquinhos.priowl.security.TokenService;
+import com.devmarquinhos.priowl.subscription.Plan;
+import com.devmarquinhos.priowl.subscription.PlanRepository;
+import com.devmarquinhos.priowl.subscription.Subscription;
+import com.devmarquinhos.priowl.subscription.SubscriptionRepository;
 import com.devmarquinhos.priowl.user.dto.UpdatePasswordRequest;
 import com.devmarquinhos.priowl.user.dto.UpdateProfileRequest;
 import com.devmarquinhos.priowl.user.dto.UserProfileResponse;
@@ -9,18 +13,29 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+
 @Service
 public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenService tokenService;
+    private final PlanRepository planRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, TokenService tokenService){
+    public UserService(UserRepository userRepository,
+                       PasswordEncoder passwordEncoder,
+                       TokenService tokenService,
+                       PlanRepository planRepository,
+                       SubscriptionRepository subscriptionRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.tokenService = tokenService;
+        this.planRepository = planRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
+    @Transactional
     public User registerUser(User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent()){
             throw new RuntimeException("Este e-mail já foi cadastrado. Tente outro.");
@@ -29,7 +44,18 @@ public class UserService {
         String hashedPassword = passwordEncoder.encode(user.getPassword());
         user.setPassword(hashedPassword);
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        Plan freePlan = planRepository.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Plano Free padrão não encontrado no banco."));
+
+        Subscription subscription = new Subscription();
+        subscription.setUser(savedUser);
+        subscription.setPlan(freePlan);
+        subscription.setStatus("ACTIVE");
+        subscriptionRepository.save(subscription);
+
+        return savedUser;
     }
 
     public String authenticate(String email, String password) {
@@ -73,11 +99,41 @@ public class UserService {
     public void updateMyPassword(UpdatePasswordRequest request) {
         User user = getAuthenticatedUser();
 
+        System.out.println("Senha digitada: " + request.currentPassword());
+        System.out.println("Senha do banco: " + user.getPassword());
+
         if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
             throw new RuntimeException("A senha atual informada está incorreta.");
         }
 
         user.setPassword(passwordEncoder.encode(request.newPassword()));
         userRepository.save(user);
+    }
+
+    @Transactional
+    public void deleteMyAccount() {
+        User user = getAuthenticatedUser();
+        userRepository.delete(user);
+    }
+
+    private void verifyAdmin() {
+        User user = getAuthenticatedUser();
+        if (!user.getIsAdmin()) {
+            throw new RuntimeException("Acesso negado. Apenas administradores.");
+        }
+    }
+
+    public List<UserProfileResponse> getAllUsersForAdmin() {
+        verifyAdmin();
+        return userRepository.findAll().stream()
+                .map(u -> new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString()))
+                .toList();
+    }
+
+    public UserProfileResponse getUserByIdForAdmin(Long id) {
+        verifyAdmin();
+        User u = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        return new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString());
     }
 }
