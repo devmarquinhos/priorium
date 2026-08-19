@@ -32,6 +32,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/password/forgot").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/password/reset").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/plans").permitAll()
+                        .requestMatchers("/api/webhooks/**").permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                         .anyRequest().authenticated()
                 )

@@ -1,5 +1,6 @@
 package com.devmarquinhos.priowl.task;
 
+import com.devmarquinhos.priowl.subscription.SubscriptionRepository;
 import com.devmarquinhos.priowl.task.dto.DashboardResponse;
 import com.devmarquinhos.priowl.task.dto.TaskFilterRequest;
 import com.devmarquinhos.priowl.task.dto.TaskRequest;
@@ -20,14 +21,18 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final CategoryRepository categoryRepository;
     private final TaskDependencyRepository taskDependencyRepository;
+    private final SubscriptionRepository subscriptionRepository;
 
-    public TaskService(TaskRepository taskRepository, CategoryRepository categoryRepository, TaskDependencyRepository taskDependencyRepository) {
+    public TaskService(TaskRepository taskRepository, CategoryRepository categoryRepository, TaskDependencyRepository taskDependencyRepository, SubscriptionRepository subscriptionRepository) {
         this.taskRepository = taskRepository;
         this.categoryRepository = categoryRepository;
         this.taskDependencyRepository = taskDependencyRepository;
+        this.subscriptionRepository = subscriptionRepository;
     }
 
     public TaskResponse createTask(TaskRequest request, User loggedUser) {
+        checkTaskLimit(loggedUser);
+
         Task task = new Task();
         task.setTitle(request.title());
         task.setDescription(request.description());
@@ -128,6 +133,10 @@ public class TaskService {
         }
 
         if (request.parentTaskId() != null) {
+            if (formsParentCycle(id, request.parentTaskId())) {
+                throw new RuntimeException("Ciclo: Esta tarefa não pode ser filha de uma de suas próprias filhas.");
+            }
+
             if (request.parentTaskId().equals(id)) {
                 throw new RuntimeException("Uma tarefa não pode ser pai dela mesma.");
             }
@@ -168,8 +177,13 @@ public class TaskService {
 
         Task blockedTask = taskRepository.findById(blockedTaskId)
                 .orElseThrow(() -> new RuntimeException("Tarefa bloqueada não encontrada."));
+
         if (!blockedTask.getUser().getId().equals(loggedUser.getId())) {
             throw new RuntimeException("Permissão negada na tarefa bloqueada.");
+        }
+
+        if (formsDependencyCycle(blockedTaskId, blockingTaskId)) {
+            throw new RuntimeException("Ciclo: A tarefa bloqueadora já depende da tarefa bloqueada.");
         }
 
         Task blockingTask = taskRepository.findById(blockingTaskId)
@@ -251,6 +265,66 @@ public class TaskService {
                 cancelledTasks,
                 inProgressTasks,
                 pendingTasks);
+    }
+
+    private void checkTaskLimit(User user) {
+        long currentTasks = taskRepository.countByUserId(user.getId());
+
+        Integer maxTasks = subscriptionRepository.findByUserId(user.getId())
+                .map(sub -> sub.getPlan().getMaxTasks())
+                .orElse(5);
+
+        if (currentTasks >= maxTasks) {
+            throw new RuntimeException("Limite de tarefas atingido. Faça upgrade do seu plano para criar mais.");
+        }
+    }
+
+    private boolean formsParentCycle(Long taskId, Long parentId) {
+        if (taskId.equals(parentId)) return true;
+        Task current = taskRepository.findById(parentId).orElse(null);
+
+        while (current != null && current.getParentTask() != null) {
+            if (current.getParentTask().getId().equals(taskId)) return true;
+            current = taskRepository.findById(current.getParentTask().getId()).orElse(null);
+        }
+        return false;
+    }
+
+    private boolean formsDependencyCycle(Long blockedId, Long blockingId) {
+        List<TaskDependency> dependencies = taskDependencyRepository.findByBlockingTaskId(blockedId);
+        for (TaskDependency dep : dependencies) {
+            if (dep.getBlockedTask().getId().equals(blockingId)) return true;
+            if (formsDependencyCycle(dep.getBlockedTask().getId(), blockingId)) return true;
+        }
+        return false;
+    }
+
+    public TaskResponse getTaskById(Long id, User loggedUser) {
+        Task task = taskRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Tarefa não encontrada."));
+        if (!task.getUser().getId().equals(loggedUser.getId())) {
+            throw new RuntimeException("Acesso negado.");
+        }
+        return mapToResponse(task);
+    }
+
+    public List<TaskResponse> getTaskDependencies(Long id, User loggedUser) {
+        getTaskById(id, loggedUser);
+
+        return taskDependencyRepository.findByBlockedTaskId(id).stream()
+                .map(dep -> mapToResponse(dep.getBlockingTask()))
+                .toList();
+    }
+
+    public void removeDependency(Long blockedTaskId, Long blockingTaskId, User loggedUser) {
+        getTaskById(blockedTaskId, loggedUser);
+
+        TaskDependency dependency = taskDependencyRepository.findByBlockedTaskId(blockedTaskId).stream()
+                .filter(dep -> dep.getBlockingTask().getId().equals(blockingTaskId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Dependência não encontrada."));
+
+        taskDependencyRepository.delete(dependency);
     }
 
     private TaskResponse mapToResponse(Task task){
