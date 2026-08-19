@@ -10,7 +10,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class SubscriptionService {
@@ -30,29 +29,17 @@ public class SubscriptionService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
 
-        Optional<Subscription> subOpt = subscriptionRepository.findByUserId(user.getId());
+        Subscription sub = subscriptionRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new RuntimeException("Assinatura não encontrada para este usuário."));
 
-        if (subOpt.isPresent()) {
-            Subscription sub = subOpt.get();
-            return new SubscriptionResponse(
-                    sub.getId(),
-                    sub.getPlan().getName(),
-                    sub.getStatus(),
-                    sub.getStartDate(),
-                    sub.getEndDate(),
-                    sub.getPlan().getMaxTasks()
-            );
-        } else {
-            // new users starts with free plan
-            return new SubscriptionResponse(
-                    null,
-                    "Free Plan",
-                    "ACTIVE",
-                    null,
-                    null,
-                    5
-            );
-        }
+        return new SubscriptionResponse(
+                sub.getId(),
+                sub.getPlan().getName(),
+                sub.getStatus(),
+                sub.getStartDate(),
+                sub.getEndDate(),
+                sub.getPlan().getMaxTasks()
+        );
     }
 
     public CheckoutResponse createCheckoutSession(CheckoutRequest request) {

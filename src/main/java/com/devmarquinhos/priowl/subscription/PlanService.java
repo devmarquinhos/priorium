@@ -47,6 +47,9 @@ public class PlanService {
     @Transactional
     public void togglePlanStatus(Long id) {
         verifyAdmin();
+        if (id.equals(1L)) {
+            throw new RuntimeException("O plano Free padrão do sistema não pode ser desativado.");
+        }
         Plan plan = planRepository.findById(id).orElseThrow(() -> new RuntimeException("Plano não encontrado."));
         plan.setIsActive(!plan.getIsActive());
         planRepository.save(plan);
