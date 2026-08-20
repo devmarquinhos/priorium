@@ -77,7 +77,7 @@ public class UserService {
 
     public UserProfileResponse getMyProfile() {
         User user = getAuthenticatedUser();
-        return new UserProfileResponse(user.getId(), user.getRealUsername(), user.getEmail(), user.getIsAdmin().toString());
+        return new UserProfileResponse(user.getId(), user.getRealUsername(), user.getEmail(), user.getIsAdmin());
     }
 
     @Transactional
@@ -92,7 +92,7 @@ public class UserService {
         user.setEmail(request.email());
         userRepository.save(user);
 
-        return new UserProfileResponse(user.getId(), user.getUsername(), user.getEmail(), user.getIsAdmin().toString());
+        return new UserProfileResponse(user.getId(), user.getUsername(), user.getEmail(), user.getIsAdmin());
     }
 
     @Transactional
@@ -126,7 +126,7 @@ public class UserService {
     public List<UserProfileResponse> getAllUsersForAdmin() {
         verifyAdmin();
         return userRepository.findAll().stream()
-                .map(u -> new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString()))
+                .map(u -> new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin()))
                 .toList();
     }
 
@@ -134,6 +134,6 @@ public class UserService {
         verifyAdmin();
         User u = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
-        return new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin().toString());
+        return new UserProfileResponse(u.getId(), u.getUsername(), u.getEmail(), u.getIsAdmin());
     }
 }
